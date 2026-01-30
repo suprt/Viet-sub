@@ -117,14 +117,15 @@ def transcribe(
     VAD is off by default so the whole clip is processed (better for music/singing).
     language=None: auto-detect (for EN then RU songs, keeps English intro)."""
     model = WhisperModel(WHISPER_MODEL, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE)
-    # Hint: lyrics in English then Russian — so first chunk (often English) isn't skipped
-    initial_prompt = "English and Russian song lyrics. "
+    # Neutral prompt so model transcribes what it hears instead of adding credits/channel text
+    initial_prompt = "Transcribe the audio. "
     segments, _ = model.transcribe(
         audio_path,
         language=language,
         vad_filter=vad_filter,
-        no_speech_threshold=0.2,  # keep more segments including intro
+        no_speech_threshold=0.4,  # 0.2 gave hallucinations; 0.4 drops uncertain chunks
         initial_prompt=initial_prompt,
+        condition_on_previous_text=False,  # reduces hallucination and stereotypical phrases (e.g. "Субтитры сделал...")
     )
     result = []
     for s in segments:
