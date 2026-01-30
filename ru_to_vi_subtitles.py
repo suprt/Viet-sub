@@ -125,7 +125,8 @@ def transcribe(
         vad_filter=vad_filter,
         no_speech_threshold=0.4,  # 0.2 gave hallucinations; 0.4 drops uncertain chunks
         initial_prompt=initial_prompt,
-        condition_on_previous_text=False,  # reduces hallucination and stereotypical phrases (e.g. "Субтитры сделал...")
+        condition_on_previous_text=False,  # reduces hallucination and stereotypical phrases
+        chunk_length=10,  # 10s chunks: after silence, the chunk where speech starts is processed separately (default 30s often skipped that chunk)
     )
     result = []
     for s in segments:
