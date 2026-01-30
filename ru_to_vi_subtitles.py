@@ -90,6 +90,14 @@ def write_srt(segments: list[tuple[float, float, str]], path: str) -> None:
             f.write(f"{text}\n\n")
 
 
+def write_transcription_debug(segments: list[tuple[float, float, str]], path: str) -> None:
+    """Write raw transcription (start, end, text) to a text file for debugging (UTF-8)."""
+    with open(path, "w", encoding="utf-8") as f:
+        for start, end, text in segments:
+            f.write(f"[{seconds_to_srt_time(start)} --> {seconds_to_srt_time(end)}]\n")
+            f.write(f"{text.strip()}\n\n")
+
+
 def extract_audio_ffmpeg(video_path: str, wav_path: str) -> None:
     """Extract mono 16kHz WAV from video for Whisper."""
     out, _ = (
@@ -129,6 +137,7 @@ def main():
     parser.add_argument("input", type=str, help="Path to input MP4 file")
     parser.add_argument("-o", "--output", type=str, default=None, help="Output MP4 path (default: input_with_subs.mp4)")
     parser.add_argument("--keep-srt", action="store_true", help="Keep temporary SRT file")
+    parser.add_argument("--save-transcription", action="store_true", help="Save raw Russian transcription to a text file (for debugging)")
     args = parser.parse_args()
 
     input_path = Path(args.input).resolve()
@@ -155,6 +164,10 @@ def main():
             print("Error: No speech segments detected.")
             sys.exit(1)
         print(f"  Found {len(ru_segments)} segments.")
+        if args.save_transcription:
+            transcription_path = output_path.parent / f"{output_path.stem}_transcription_ru.txt"
+            write_transcription_debug(ru_segments, str(transcription_path))
+            print(f"  Transcription saved: {transcription_path}")
 
         print("Step 3/4: Translating to Vietnamese (Ollama qwen3:8b)...")
         vi_segments = []
