@@ -108,10 +108,16 @@ def extract_audio_ffmpeg(video_path: str, wav_path: str) -> None:
     )
 
 
-def transcribe(audio_path: str) -> list[tuple[float, float, str]]:
-    """Transcribe audio with faster-whisper large-v3 on CUDA. Returns (start, end, text)."""
+def transcribe(audio_path: str, vad_filter: bool = False) -> list[tuple[float, float, str]]:
+    """Transcribe audio with faster-whisper large-v3 on CUDA. Returns (start, end, text).
+    VAD is off by default so the whole clip is processed (better for music/singing)."""
     model = WhisperModel(WHISPER_MODEL, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE)
-    segments, _ = model.transcribe(audio_path, language="ru", vad_filter=True)
+    segments, _ = model.transcribe(
+        audio_path,
+        language="ru",
+        vad_filter=vad_filter,
+        no_speech_threshold=0.4,  # more permissive for singing / borderline segments
+    )
     result = []
     for s in segments:
         result.append((s.start, s.end, (s.text or "").strip()))
@@ -138,6 +144,7 @@ def main():
     parser.add_argument("-o", "--output", type=str, default=None, help="Output MP4 path (default: input_with_subs.mp4)")
     parser.add_argument("--keep-srt", action="store_true", help="Keep temporary SRT file")
     parser.add_argument("--save-transcription", action="store_true", help="Save raw Russian transcription to a text file (for debugging)")
+    parser.add_argument("--vad", action="store_true", help="Use VAD to filter silence (can cut off music/singing; off by default)")
     args = parser.parse_args()
 
     input_path = Path(args.input).resolve()
@@ -159,7 +166,7 @@ def main():
         extract_audio_ffmpeg(str(input_path), str(wav_path))
 
         print("Step 2/4: Transcribing (faster-whisper large-v3, CUDA)...")
-        ru_segments = transcribe(str(wav_path))
+        ru_segments = transcribe(str(wav_path), vad_filter=args.vad)
         if not ru_segments:
             print("Error: No speech segments detected.")
             sys.exit(1)

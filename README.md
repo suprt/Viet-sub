@@ -53,11 +53,17 @@ python ru_to_vi_subtitles.py "path\to\video.mp4" --keep-srt
 python ru_to_vi_subtitles.py "path\to\video.mp4" --save-transcription
 ```
 
+**Use VAD** (filter silence; can cut off music/singing — only for clean speech):
+
+```bash
+python ru_to_vi_subtitles.py "path\to\video.mp4" --vad
+```
+
 ## Pipeline steps
 
 1. **Check Ollama** — exits with an error if Ollama is not running.
 2. **Extract audio** — FFmpeg extracts mono 16 kHz WAV from the video.
-3. **Transcribe** — faster-whisper `large-v3` on CUDA (Russian, with VAD). With `--save-transcription`, the raw Russian text is written to a `.txt` file next to the output video.
+3. **Transcribe** — faster-whisper `large-v3` on CUDA (Russian). VAD is **off by default** so the whole clip is transcribed (avoids cutting off music/singing after ~30 s). Use `--vad` to enable voice-activity filtering for clean speech. With `--save-transcription`, the raw Russian text is written to a `.txt` file next to the output video.
 4. **Translate** — each segment is sent to Ollama `qwen3:8b` with a song-translator system prompt (Russian → Vietnamese).
 5. **SRT** — UTF-8 subtitle file with Vietnamese text and original timestamps.
 6. **Burn** — FFmpeg burns subtitles into the video (Arial, UTF-8).
